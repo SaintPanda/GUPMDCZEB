@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Молекулярна Система Знань</title>
+<title>Система Головного управління</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap');
 
@@ -304,26 +304,57 @@
     <div id="auth-err">невірний пароль</div>
   </div>
 </div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAWp5hUEci0s2fkgDopVCgFrDnIA7-veuI",
+    authDomain: "gupmdczeb.firebaseapp.com",
+    projectId: "gupmdczeb",
+    storageBucket: "gupmdczeb.firebasestorage.app",
+    messagingSenderId: "857129519260",
+    appId: "1:857129519260:web:2240f464c9b1e48da18559"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 <script>
 // ═══════════════════════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════════════════════
+let nodes = [
+  {
+    id: 'root',
+    name: 'root',
+    parentId: null,
+    children: [],
+    content: '',
+    color: '#d2d2d0'
+  }
+];
 const PASS = 'author2024';
 let isAuthor = false;
-let nodes = JSON.parse(localStorage.getItem('mol4') || 'null') || [
-  {id:'root',name:'Головна',content:'<p>Центральний вузол системи знань. Подвійний клік для занурення.</p>',image:'',color:'#c0c0be',parentId:null,children:['n1','n2','n3','n4'],keywords:[]},
-  {id:'n1',name:'Ідеї',content:'<p>Місце для ваших ідей та концепцій.</p>',image:'',color:'#cacac8',parentId:'root',children:['n1a','n1b'],keywords:[]},
-  {id:'n2',name:'Проєкти',content:'<p>Поточні та заплановані проєкти.</p>',image:'',color:'#c4c4c2',parentId:'root',children:['n2a','n2b'],keywords:[]},
-  {id:'n3',name:'Натхнення',content:'<p>Джерела натхнення та референси.</p>',image:'',color:'#bebebe',parentId:'root',children:['n3a'],keywords:[]},
-  {id:'n4',name:'Архів',content:'<p>Архівні матеріали та нотатки.</p>',image:'',color:'#b8b8b6',parentId:'root',children:[],keywords:[]},
-  {id:'n1a',name:'Концепт А',content:'<p>Деталі концепту.</p>',image:'',color:'#d0d0ce',parentId:'n1',children:[],keywords:[]},
-  {id:'n1b',name:'Концепт Б',content:'<p>Другий концепт.</p>',image:'',color:'#ccccca',parentId:'n1',children:[],keywords:[]},
-  {id:'n2a',name:'Проєкт X',content:'<p>Деталі проєкту X.</p>',image:'',color:'#c8c8c6',parentId:'n2',children:[],keywords:[]},
-  {id:'n2b',name:'Проєкт Y',content:'<p>Деталі проєкту Y.</p>',image:'',color:'#c4c4c2',parentId:'n2',children:[],keywords:[]},
-  {id:'n3a',name:'Референс 1',content:'<p>Перший референс.</p>',image:'',color:'#c0c0be',parentId:'n3',children:[],keywords:[]}
-];
-function saveData(){localStorage.setItem('mol4',JSON.stringify(nodes));}
+async function loadData() {
+  const snapshot = await db.collection("nodes").get();
+  
+  if (snapshot.empty) {
+    // перший запуск — зберігаємо дефолт
+    for (let n of nodes) {
+      await db.collection("nodes").doc(n.id).set(n);
+    }
+  } else {
+    nodes = snapshot.docs.map(doc => doc.data());
+  }
+
+  buildLayout();
+}
+  async function saveData() {
+  for (let n of nodes) {
+    await db.collection("nodes").doc(n.id).set(n);
+  }
+}
 function getNode(id){return nodes.find(n=>n.id===id);}
 function getChildren(id){const n=getNode(id);return n?n.children.map(c=>getNode(c)).filter(Boolean):[];}
 
@@ -1007,7 +1038,9 @@ function saveNode(){
     Object.assign(edTarget,{name,content,image,color:selColor,keywords:kws});
   } else {
     const nid='n'+Date.now();
-    const pid=edMode==='add-child'?edTarget.id:edTarget.parentId;
+    const pid = edMode === 'add-child'
+    ? edTarget.id
+    : edTarget.parentId || 'root';
     nodes.push({id:nid,name,content,image,color:selColor,parentId:pid,children:[],keywords:kws});
     const p=getNode(pid); if(p)p.children.push(nid);
   }
@@ -1099,7 +1132,9 @@ document.getElementById('auth-overlay').addEventListener('click',e=>{if(e.target
 // ═══════════════════════════════════════════════════════════
 resize();
 updateBC();
-loop();
+loadData().then(() => {
+  loop();
+});
 </script>
 </body>
 </html>
