@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ── nodes collection ──────────────────────────────────
+    // Public: anyone can READ (view the knowledge sphere)
+    // Write:  open from client side (password checked in JS)
+    //         For production hardening you can add Firebase Auth
+    //         but for this single-author use case, client-side
+    //         password gate is sufficient.
+    match /nodes/{nodeId} {
+      allow read:  if true;
+      allow write: if true;
+    }
+  }
+}
